@@ -1,0 +1,73 @@
+{
+  "displayName": "KITTI-360 Dataset",
+  "name": "kitti-360-dataset",
+  "description": "We present a large-scale dataset that contains rich sensory information and full annotations. We recorded several suburbs of Karlsruhe, Germany, corresponding to over 320k images and 100k laser scans in a driving distance of 73.7km. We annotate both static and dynamic 3D scene elements with rough bounding primitives and transfer this information into the image domain, resulting in dense semantic & instance annotations for both 3D point clouds and 2D images.",
+  "scope": "project",
+  "version": "0.0.1",
+  "attributes": {
+    "Provider": "",
+    "Category": "Dataset",
+    "License": ""
+  },
+  "components": {
+    "computeConfigs": [
+      {
+        "name": "kitti-deploy",
+        "runtime": {
+          "podType": "regular-m",
+          "concurrency": 10,
+          "runnerImage": "gcr.io/viewo-g/piper/agent/cpu/osdar23-datasets:cpu.py3.8.opencv4.7",
+          "autoscaler": {
+            "type": "rabbitmq",
+            "minReplicas": 0,
+            "maxReplicas": 1,
+            "queueLength": 100
+          },
+          "preemptible": false
+        },
+        "secrets": []
+      }
+    ],
+    "modules": [
+      {
+        "name": "dataset-adapter",
+        "entryPoint": "dataset_loader.py",
+        "className": "DatasetLidarKITTI",
+        "computeConfig": "kitti-deploy",
+        "description": "Dataset adapter for KITTI-360",
+        "initInputs": [],
+        "functions": [
+          {
+            "name": "upload_dataset",
+            "input": [
+              {
+                "type": "Dataset",
+                "name": "dataset",
+                "description": "Dataloop Dataset Entity"
+              },
+              {
+                "type": "String",
+                "name": "source",
+                "description": "Dataset source URL"
+              }
+            ],
+            "output": [],
+            "displayName": "upload_dataset",
+            "displayIcon": "",
+            "description": "function to upload dataset to Dataloop"
+          }
+        ]
+      }
+    ],
+    "datasets": [
+      {
+        "name": "kitti-360",
+        "docs": "https://www.cvlibs.net/datasets/kitti-360/documentation.php",
+        "source": "https://www.cvlibs.net/datasets/kitti-360/index.php",
+        "invoke": {
+          "namespace": "dataset-adapter.upload_dataset"
+        }
+      }
+    ]
+  }
+}
