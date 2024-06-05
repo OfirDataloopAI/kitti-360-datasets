@@ -82,12 +82,17 @@ class LidarCustomParser(LidarFileMappingParser):
     def __init__(self):
         self.attributes_id_mapping_dict = None
 
-        # Save input paths
+        # Data params
         self.number_of_frames = 10
         self.camera_list = ["image_00", "image_01"]
         self.data_3d_path = os.path.join("data_3d_test_slam", "test_0")
-        self.data_2d_path = os.path.join("data_2d_test_slam", "test_0")
+        self.data_2d_path = os.path.join("data_2d_test_slam", "test_0")\
+
+        # Calibration params
         self.calibration_path = "calibration"
+        self.lidar_extrinsic_filename = "calib_sick_to_velo.txt"
+        self.cameras_intrinsic_filename = "calib_cam_to_pose.txt"
+        self.cameras_extrinsic_filename = "calib_cam_to_velo.txt"
         super().__init__()
 
     # def attributes_id_mapping(self, dataset):
