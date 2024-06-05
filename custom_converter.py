@@ -84,6 +84,7 @@ class LidarCustomParser(LidarFileMappingParser):
 
         # Save input paths
         self.number_of_frames = 10
+        self.camera_list = ["image_00", "image_01"]
         self.data_3d_path = os.path.join("data_3d_test_slam", "test_0")
         self.data_2d_path = os.path.join("data_2d_test_slam", "test_0")
         self.calibration_path = "calibration"
@@ -171,22 +172,35 @@ class LidarCustomParser(LidarFileMappingParser):
                 f"as: '/lidar/{lidar_frame}.pcd'"
             )
 
-            # # Loop through images
-            # for idx, image in enumerate(self.camera_list):
-            #     # Get sensor
-            #     sensor_reference = frame.sensors[image]
-            #     image_filepath = os.path.join(data_path, sensor_reference.uri[1:])
-            #     ext = os.path.splitext(p=sensor_reference.uri)[1]
-            #     dataset.items.upload(
-            #         local_path=image_filepath,
-            #         remote_path=f"/frames/{lidar_frame}",
-            #         remote_name=f"{idx}{ext}",
-            #         overwrite=True
-            #     )
-            #     print(
-            #         f"Uploaded to 'frames' directory, the file: '{image_filepath}', "
-            #         f"as: '/frames/{lidar_frame}/{idx}{ext}'"
-            #     )
+            pcd_name = os.path.basename(pcd_filepath)
+            image_name = pcd_name.replace(".pcd", ".png")
+            image_filepaths = pathlib.Path(data_2d_path).rglob(f"*{image_name}")
+            image_filepaths = list(image_filepaths)
+
+            # Loop through images
+            for image_filepath in image_filepaths:
+                image_filepath = str(image_filepath)
+                idx = None
+                for camera_idx, camera_name in enumerate(self.camera_list):
+                    if camera_name in image_filepath:
+                        idx = camera_idx
+                        break
+
+                if idx is None:
+                    raise ValueError(f"Couldn't find camera in camera_list for image in path: {image_filepath}")
+
+                # Get sensor
+                ext = os.path.splitext(p=image_filepath)[1]
+                dataset.items.upload(
+                    local_path=image_filepath,
+                    remote_path=f"/frames/{lidar_frame}",
+                    remote_name=f"{idx}{ext}",
+                    overwrite=True
+                )
+                print(
+                    f"Uploaded to 'frames' directory, the file: '{image_filepath}', "
+                    f"as: '/frames/{lidar_frame}/{idx}{ext}'"
+                )
 
     def create_mapping_json(self, data_path: str, dataset: dl.Dataset):
         output_frames = dict()
@@ -204,18 +218,15 @@ class LidarCustomParser(LidarFileMappingParser):
             timestamps = f.readlines()
             timestamps = [timestamp.strip() for timestamp in timestamps]
 
-
-        # TODO:
         # Loop through frames
-        frames = []
-        for lidar_frame, (frame_num, frame) in enumerate(frames.items()):
-            # Sensor ego pose
-            ego_pose = frame.sensors['lidar']
+        for lidar_frame, pcd_filepath in enumerate(pcd_filepaths):
+            # Timestamp format: 'yyyy-mm-dd hh:mm:ss.sssssssss'
+            timestamp = timestamps[lidar_frame]
 
             # Output frame dict from `Metadata`
             output_frame_dict = {
                 "metadata": {
-                    "frame": int(frame_num),
+                    "frame": timestamp,
                 },
                 "path": f"lidar/{lidar_frame}.pcd",
                 "timestamp": float(frame.timestamp),
@@ -316,12 +327,13 @@ class LidarCustomParser(LidarFileMappingParser):
 def main():
     cp = LidarCustomParser()
 
+    dl.setenv('prod')
     data_path = "./KITTI-360/test_data"
     dataset = dl.datasets.get(dataset_id="66602cc51fb4fc872de5cfca")
 
     # cp.data_pre_processing(data_path=data_path)
-    cp.upload_pcds_and_images(data_path=data_path, dataset=dataset)
-    # mapping_item = cp.create_mapping_json(data_path=data_path, dataset=dataset)
+    # cp.upload_pcds_and_images(data_path=data_path, dataset=dataset)
+    mapping_item = cp.create_mapping_json(data_path=data_path, dataset=dataset)
     # frames_item = cp.parse_data(mapping_item=mapping_item)
     # mapping_item = dataset.items.get(item_id="65f32fa45c63d275df8dc81d")
 
