@@ -9,11 +9,11 @@ from scipy.spatial.transform import Rotation
 import math
 from io import BytesIO
 import numpy as np
-import struct
 import open3d as o3d
 import pathlib
 
 from dtlpylidar.parsers.base_parser import LidarFileMappingParser
+import custom_converter_utils as cc_utils
 
 
 class FixTransformation:
@@ -124,21 +124,6 @@ class LidarCustomParser(LidarFileMappingParser):
         data_path = os.path.join(os.getcwd(), data_path)
         return data_path
 
-    @staticmethod
-    def _convert_kitti_bin_to_pcd(binFilePath):
-        size_float = 4
-        list_pcd = []
-        with open(binFilePath, "rb") as f:
-            byte = f.read(size_float * 4)
-            while byte:
-                x, y, z, intensity = struct.unpack("ffff", byte)
-                list_pcd.append([x, y, z])
-                byte = f.read(size_float * 4)
-        np_pcd = np.asarray(list_pcd)
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(np_pcd)
-        return pcd
-
     def data_pre_processing(self, data_path: str):
         data_3d_path = os.path.join(data_path, self.data_3d_path)
 
@@ -146,7 +131,7 @@ class LidarCustomParser(LidarFileMappingParser):
         bin_filepaths = sorted(list(bin_filepaths))[0:self.number_of_frames]
         for bin_filepath in bin_filepaths:
             input_bin_filepath = str(bin_filepath)
-            pcd = self._convert_kitti_bin_to_pcd(binFilePath=input_bin_filepath)
+            pcd = cc_utils.convert_kitti_bin_to_pcd(binFilePath=input_bin_filepath)
             output_pcd_filename = input_bin_filepath.replace(".bin", ".pcd")
             o3d.io.write_point_cloud(filename=output_pcd_filename, pointcloud=pcd, write_ascii=True)
 

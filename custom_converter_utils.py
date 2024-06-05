@@ -1,8 +1,32 @@
-# Utils to load transformation to camera pose to system pose
 import os
 import numpy as np
+import struct
+import open3d as o3d
 
 
+######################################
+# From 'convert_kitti_bin_to_pcd.py' #
+######################################
+def convert_kitti_bin_to_pcd(binFilePath):
+    size_float = 4
+    list_pcd = []
+    with open(binFilePath, "rb") as f:
+        byte = f.read(size_float * 4)
+        while byte:
+            x, y, z, intensity = struct.unpack("ffff", byte)
+            list_pcd.append([x, y, z])
+            byte = f.read(size_float * 4)
+    np_pcd = np.asarray(list_pcd)
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(np_pcd)
+    return pcd
+
+
+######################
+# loadCalibration.py #
+######################
+
+# Utils to load transformation to camera pose to system pose
 def checkfile(filename):
     if not os.path.isfile(filename):
         raise RuntimeError('%s does not exist!' % filename)
@@ -83,33 +107,3 @@ def loadPerspectiveIntrinsic(filename):
     fid.close()
 
     return Tr
-
-
-if __name__ == '__main__':
-    os.environ["KITTI360_DATASET"] = r'..\KITTI-360\test_data'
-
-    if 'KITTI360_DATASET' in os.environ:
-        kitti360Path = os.environ['KITTI360_DATASET']
-    else:
-        kitti360Path = os.path.join(os.path.dirname(
-            os.path.realpath(__file__)), '..', '..')
-
-    fileCameraToPose = os.path.join(kitti360Path, 'calibration', 'calib_cam_to_pose.txt')
-    Tr = loadCalibrationCameraToPose(fileCameraToPose)
-    print('Loaded %s' % fileCameraToPose)
-    print(Tr)
-
-    fileCameraToVelo = os.path.join(kitti360Path, 'calibration', 'calib_cam_to_velo.txt')
-    Tr = loadCalibrationRigid(fileCameraToVelo)
-    print('Loaded %s' % fileCameraToVelo)
-    print(Tr)
-
-    fileSickToVelo = os.path.join(kitti360Path, 'calibration', 'calib_sick_to_velo.txt')
-    Tr = loadCalibrationRigid(fileSickToVelo)
-    print('Loaded %s' % fileSickToVelo)
-    print(Tr)
-
-    filePersIntrinsic = os.path.join(kitti360Path, 'calibration', 'perspective.txt')
-    Tr = loadPerspectiveIntrinsic(filePersIntrinsic)
-    print('Loaded %s' % filePersIntrinsic)
-    print(Tr)
