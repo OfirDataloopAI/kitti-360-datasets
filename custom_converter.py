@@ -86,13 +86,13 @@ class LidarCustomParser(LidarFileMappingParser):
         self.number_of_frames = 10
         self.camera_list = ["image_00", "image_01"]
         self.data_3d_path = os.path.join("data_3d_test_slam", "test_0")
-        self.data_2d_path = os.path.join("data_2d_test_slam", "test_0")\
+        self.data_2d_path = os.path.join("data_2d_test_slam", "test_0")
 
         # Calibration params
         self.calibration_path = "calibration"
         self.lidar_extrinsic_filename = "calib_sick_to_velo.txt"
-        self.cameras_intrinsic_filename = "calib_cam_to_pose.txt"
-        self.cameras_extrinsic_filename = "calib_cam_to_velo.txt"
+        self.cameras_intrinsic_filename = "perspective.txt"
+        self.cameras_extrinsic_filename = "calib_cam_to_pose.txt"
         super().__init__()
 
     # def attributes_id_mapping(self, dataset):
@@ -208,10 +208,25 @@ class LidarCustomParser(LidarFileMappingParser):
             timestamps = f.readlines()
             timestamps = [timestamp.strip() for timestamp in timestamps]
 
+        # Get calibration data
+        calibration_path = os.path.join(data_path, self.calibration_path)
+        lidar_extrinsic_filepath = os.path.join(calibration_path, self.lidar_extrinsic_filename)
+        cameras_intrinsic_filepath = os.path.join(calibration_path, self.cameras_intrinsic_filename)
+        cameras_extrinsic_filepath = os.path.join(calibration_path, self.cameras_extrinsic_filename)
+
+        lidar_extrinsic = cc_utils.loadCalibrationRigid(filename=lidar_extrinsic_filepath)
+        cameras_extrinsic = cc_utils.loadCalibrationCameraToPose(filename=cameras_extrinsic_filepath)
+        cameras_intrinsic = cc_utils.loadPerspectiveIntrinsic(filename=cameras_intrinsic_filepath)
+
+        camera_0_extrinsic = cameras_extrinsic["image_00"]
+        camera_1_extrinsic = cameras_extrinsic["image_01"]
+
         # Loop through frames
         for lidar_frame, pcd_filepath in enumerate(pcd_filepaths):
             # Timestamp format: 'yyyy-mm-dd hh:mm:ss.sssssssss'
             timestamp = timestamps[lidar_frame]
+            timestamp_datetime = datetime.datetime.strptime(timestamp[:26], "%Y-%m-%d %H:%M:%S.%f")
+            timestamp_unix = str(timestamp_datetime.timestamp())
 
             # Output frame dict from `Metadata`
             output_frame_dict = {
@@ -219,7 +234,7 @@ class LidarCustomParser(LidarFileMappingParser):
                     "frame": timestamp,
                 },
                 "path": f"lidar/{lidar_frame}.pcd",
-                "timestamp": float(frame.timestamp),
+                "timestamp": timestamp_unix,
                 "position": {
                     "x": ego_pose.sensor.extrinsics.pos.x,
                     "y": ego_pose.sensor.extrinsics.pos.y,
