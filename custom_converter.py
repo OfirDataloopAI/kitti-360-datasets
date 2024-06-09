@@ -155,7 +155,7 @@ class LidarCustomParser(LidarFileMappingParser):
                 local_path=pcd_filepath,
                 remote_path=f"/lidar",
                 remote_name=f"{lidar_frame}.pcd",
-                # overwrite=True
+                overwrite=True
             )
             print(
                 f"Uploaded to 'lidar' directory, the file: '{pcd_filepath}', "
@@ -226,17 +226,20 @@ class LidarCustomParser(LidarFileMappingParser):
         # Loop through frames
         for lidar_frame, pcd_filepath in enumerate(pcd_filepaths):
             # Timestamp format: 'yyyy-mm-dd hh:mm:ss.sssssssss'
-            timestamp = lidar_timestamps[lidar_frame]
-            timestamp_datetime = datetime.datetime.strptime(timestamp[:26], "%Y-%m-%d %H:%M:%S.%f")
-            timestamp_unix = str(timestamp_datetime.timestamp())
+            lidar_timestamp = lidar_timestamps[lidar_frame]
+            lidar_timestamp_datetime = datetime.datetime.strptime(lidar_timestamp[:26], "%Y-%m-%d %H:%M:%S.%f")
+            lidar_timestamp_unix = float(lidar_timestamp_datetime.timestamp())
+
+            # Lidar Extrinsic
+            lidar_extrinsic
 
             # Output frame dict from `Metadata`
             output_frame_dict = {
                 "metadata": {
-                    "frame": timestamp,
+                    "frame": lidar_timestamp,
                 },
                 "path": f"lidar/{lidar_frame}.pcd",
-                "timestamp": timestamp_unix,
+                "timestamp": lidar_timestamp_unix,
                 "position": {
                     "x": ego_pose.sensor.extrinsics.pos.x,
                     "y": ego_pose.sensor.extrinsics.pos.y,
@@ -250,32 +253,35 @@ class LidarCustomParser(LidarFileMappingParser):
                 },
                 "images": dict()
             }
-
             pcd_name = os.path.basename(pcd_filepath)
-            image_name = pcd_name.replace(".pcd", ".png")
-            image_filepaths = pathlib.Path(data_2d_path).rglob(f"*{image_name}")
-            image_filepaths = list(image_filepaths)
 
             # Loop through images
-            for image_filepath in image_filepaths:
+            for idx, camera_name in enumerate(self.camera_list):
+                image_name = pcd_name.replace(".pcd", ".png")
+                image_filepath = os.path.join(data_2d_path, camera_name)
+                image_filepath = list(pathlib.Path(image_filepath).rglob(f"*{image_name}"))[0]
+
+                # Timestamp format: 'yyyy-mm-dd hh:mm:ss.sssssssss'
+                image_timestamp = images_timestamps[camera_name][idx]
+                image_timestamp_datetime = datetime.datetime.strptime(image_timestamp[:26], "%Y-%m-%d %H:%M:%S.%f")
+                image_timestamp_unix = float(image_timestamp_datetime.timestamp())
+
+                # Image Extrinsic and Intrinsic
                 camera_extrinsic = cameras_extrinsic[camera_name]
                 intrinsic_format = f"P_rect_{camera_name.split('_')[-1]}"
                 camera_intrinsic = cameras_intrinsic[intrinsic_format]
 
-                quaternion = np.array([extrinsics.quat.x, extrinsics.quat.y, extrinsics.quat.z, extrinsics.quat.w])
-                position = np.array([extrinsics.pos.x, extrinsics.pos.y, extrinsics.pos.z])
-
-
+                # TODO
+                position, quaternion = ["", ""]
 
                 # Output image dict
-                ext = os.path.splitext(p=sensor_reference.uri)[1]
+                ext = os.path.splitext(p=image_filepath)[1]
                 image_dict = {
                     "metadata": {
-                        "frame": int(frame_num),
-                        "image_uri": sensor_reference.uri,
+                        "timestamp": image_timestamp,
                     },
                     "image_path": f"frames/{lidar_frame}/{idx}{ext}",
-                    "timestamp": float(sensor_reference.timestamp),
+                    "timestamp": image_timestamp_unix,
                     "intrinsics": {
                         "fx": sensor_reference.sensor.intrinsics.camera_matrix[0],
                         "fy": sensor_reference.sensor.intrinsics.camera_matrix[5],
