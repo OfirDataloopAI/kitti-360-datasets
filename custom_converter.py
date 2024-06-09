@@ -168,6 +168,7 @@ class LidarCustomParser(LidarFileMappingParser):
                 image_name = pcd_name.replace(".pcd", ".png")
                 image_filepath = os.path.join(data_2d_path, camera_name)
                 image_filepath = list(pathlib.Path(image_filepath).rglob(f"*{image_name}"))[0]
+                image_filepath = str(image_filepath)
 
                 # Get sensor
                 ext = os.path.splitext(p=image_filepath)[1]
