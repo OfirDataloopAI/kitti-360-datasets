@@ -227,7 +227,7 @@ class LidarCustomParser(LidarFileMappingParser):
             lidar_timestamp_unix = float(lidar_timestamp_datetime.timestamp())
 
             # Lidar Extrinsic
-            position, quaternion = cc_utils.get_position_and_quaternion_from_matrix(lidar_extrinsic)
+            position, quaternion = cc_utils.get_position_and_quaternion_from_matrix(matrix=lidar_extrinsic)
 
             # Output frame dict from `Metadata`
             output_frame_dict = {
@@ -267,7 +267,7 @@ class LidarCustomParser(LidarFileMappingParser):
                 intrinsic_format = f"P_rect_{camera_name.split('_')[-1]}"
                 camera_intrinsic = cameras_intrinsic[intrinsic_format]
 
-                position, quaternion = cc_utils.get_position_and_quaternion_from_matrix(camera_intrinsic)
+                position, quaternion = cc_utils.get_position_and_quaternion_from_matrix(matrix=camera_extrinsic)
 
                 # Output image dict
                 ext = os.path.splitext(p=image_filepath)[1]
@@ -279,10 +279,10 @@ class LidarCustomParser(LidarFileMappingParser):
                     "image_path": f"frames/{lidar_frame}/{idx}{ext}",
                     "timestamp": image_timestamp_unix,
                     "intrinsics": {
-                        "fx": camera_extrinsic[0][0],
-                        "cx": camera_extrinsic[0][2],
-                        "fy": camera_extrinsic[1][1],
-                        "cy": camera_extrinsic[1][2]
+                        "fx": camera_intrinsic[0][0],
+                        "cx": camera_intrinsic[0][2],
+                        "fy": camera_intrinsic[1][1],
+                        "cy": camera_intrinsic[1][2]
                     },
                     "extrinsics": {
                         "translation": {
