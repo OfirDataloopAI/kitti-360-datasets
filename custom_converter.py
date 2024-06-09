@@ -59,9 +59,8 @@ class FixTransformation:
         rotation_matrix[0:3, 0:3] = Rotation.from_quat(quaternion).as_matrix()
 
         # Apply Rotation fix
-        theta_y = 90
-        theta_z = -90
-        rotation_fix = FixTransformation.rotate_system(theta_y=theta_y, theta_z=theta_z, radians=False)
+        theta_z = 180
+        rotation_fix = FixTransformation.rotate_system(theta_z=theta_z, radians=False)
         rotation_matrix = rotation_matrix @ rotation_fix
 
         # Translation
@@ -85,8 +84,8 @@ class LidarCustomParser(LidarFileMappingParser):
         # Data params
         self.number_of_frames = 10
         self.camera_list = ["image_00", "image_01"]
-        self.data_3d_path = os.path.join("data_3d_test_slam", "test_0", "2013_05_28_drive_0008_sync")
-        self.data_2d_path = os.path.join("data_2d_test_slam", "test_0", "2013_05_28_drive_0008_sync")
+        self.data_3d_path = os.path.join("data_3d_test_slam", "test_1", "2013_05_28_drive_0008_sync")
+        self.data_2d_path = os.path.join("data_2d_test_slam", "test_1", "2013_05_28_drive_0008_sync")
 
         # Calibration params
         self.calibration_path = "calibration"
@@ -269,6 +268,11 @@ class LidarCustomParser(LidarFileMappingParser):
                 camera_intrinsic = cameras_intrinsic[intrinsic_format]
 
                 position, quaternion = cc_utils.get_position_and_quaternion_from_matrix(matrix=camera_extrinsic)
+                translation, rotation = FixTransformation.fix_camera_transformation(
+                    quaternion=quaternion,
+                    position=position
+                )
+
 
                 # Output image dict
                 ext = os.path.splitext(p=image_filepath)[1]
@@ -287,15 +291,15 @@ class LidarCustomParser(LidarFileMappingParser):
                     },
                     "extrinsics": {
                         "translation": {
-                            "x": position[0],
-                            "y": position[1],
-                            "z": position[2]
+                            "x": translation["x"],
+                            "y": translation["y"],
+                            "z": translation["z"]
                         },
                         "rotation": {
-                            "x": quaternion[0],
-                            "y": quaternion[1],
-                            "z": quaternion[2],
-                            "w": quaternion[3]
+                            "x": rotation["x"],
+                            "y": rotation["y"],
+                            "z": rotation["z"],
+                            "w": rotation["w"]
                         },
                     },
                     "distortion": {
@@ -339,7 +343,7 @@ def main():
 
     dl.setenv('prod')
     data_path = "./KITTI-360/test_data"
-    dataset = dl.datasets.get(dataset_id="66602cc51fb4fc872de5cfca")
+    dataset = dl.datasets.get(dataset_id="6665a390f4603a441d0fa24d")
 
     # cp.data_pre_processing(data_path=data_path)
     # cp.upload_pcds_and_images(data_path=data_path, dataset=dataset)
