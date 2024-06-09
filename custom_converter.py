@@ -280,8 +280,8 @@ class LidarCustomParser(LidarFileMappingParser):
                     "timestamp": image_timestamp_unix,
                     "intrinsics": {
                         "fx": camera_extrinsic[0][0],
-                        "fy": camera_extrinsic[1][1],
                         "cx": camera_extrinsic[0][2],
+                        "fy": camera_extrinsic[1][1],
                         "cy": camera_extrinsic[1][2]
                     },
                     "extrinsics": {
