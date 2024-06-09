@@ -3,6 +3,8 @@ import numpy as np
 import struct
 import open3d as o3d
 
+from scipy.spatial.transform import Rotation as R
+
 
 ######################################
 # From 'convert_kitti_bin_to_pcd.py' #
@@ -107,3 +109,15 @@ def loadPerspectiveIntrinsic(filename):
     fid.close()
 
     return Tr
+
+
+##############################
+# dtlpylidar_transformations #
+##############################
+def get_pose_from_matrix(matrix):
+    return matrix[:3, 3]
+
+
+def get_quaternion_from_matrix(matrix):
+    r = R.from_matrix(matrix[:3, :3])
+    return r.as_quat()
