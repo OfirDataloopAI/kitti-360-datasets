@@ -84,8 +84,8 @@ class LidarCustomParser(LidarFileMappingParser):
         # Data params
         self.number_of_frames = 10
         self.camera_list = ["image_00", "image_01"]
-        self.data_3d_path = os.path.join("data_3d_test_slam", "test_1", "2013_05_28_drive_0008_sync")
-        self.data_2d_path = os.path.join("data_2d_test_slam", "test_1", "2013_05_28_drive_0008_sync")
+        self.data_3d_path = os.path.join("data_3d_test_slam", "test_0", "2013_05_28_drive_0008_sync")
+        self.data_2d_path = os.path.join("data_2d_test_slam", "test_0", "2013_05_28_drive_0008_sync")
 
         # Calibration params
         self.calibration_path = "calibration"
@@ -273,7 +273,6 @@ class LidarCustomParser(LidarFileMappingParser):
                     position=position
                 )
 
-
                 # Output image dict
                 ext = os.path.splitext(p=image_filepath)[1]
                 image_dict = {
@@ -343,7 +342,7 @@ def main():
 
     dl.setenv('prod')
     data_path = "./KITTI-360/test_data"
-    dataset = dl.datasets.get(dataset_id="6665a390f4603a441d0fa24d")
+    dataset = dl.datasets.get(dataset_id="66602cc51fb4fc872de5cfca")
 
     # cp.data_pre_processing(data_path=data_path)
     # cp.upload_pcds_and_images(data_path=data_path, dataset=dataset)
