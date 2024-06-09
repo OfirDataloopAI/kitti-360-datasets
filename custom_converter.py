@@ -217,43 +217,39 @@ class LidarCustomParser(LidarFileMappingParser):
         cameras_extrinsic = cc_utils.loadCalibrationCameraToPose(filename=cameras_extrinsic_filepath)
         cameras_intrinsic = cc_utils.loadPerspectiveIntrinsic(filename=cameras_intrinsic_filepath)
 
-        # camera_0_extrinsic = cameras_extrinsic["image_00"]
-        # camera_1_extrinsic = cameras_extrinsic["image_01"]
-        #
-        # camera_0_intrinsic = cameras_intrinsic["P_rect_00"]
-        # camera_1_intrinsic = cameras_intrinsic["P_rect_01"]
-
         # Loop through frames
         for lidar_frame, pcd_filepath in enumerate(pcd_filepaths):
+            pcd_name = os.path.basename(pcd_filepath)
+
             # Timestamp format: 'yyyy-mm-dd hh:mm:ss.sssssssss'
             lidar_timestamp = lidar_timestamps[lidar_frame]
             lidar_timestamp_datetime = datetime.datetime.strptime(lidar_timestamp[:26], "%Y-%m-%d %H:%M:%S.%f")
             lidar_timestamp_unix = float(lidar_timestamp_datetime.timestamp())
 
             # Lidar Extrinsic
-            lidar_extrinsic
+            position, quaternion = cc_utils.get_position_and_quaternion_from_matrix(lidar_extrinsic)
 
             # Output frame dict from `Metadata`
             output_frame_dict = {
                 "metadata": {
-                    "frame": lidar_timestamp,
+                    "timestamp": lidar_timestamp,
+                    "lidar_name": pcd_name
                 },
                 "path": f"lidar/{lidar_frame}.pcd",
                 "timestamp": lidar_timestamp_unix,
                 "position": {
-                    "x": ego_pose.sensor.extrinsics.pos.x,
-                    "y": ego_pose.sensor.extrinsics.pos.y,
-                    "z": ego_pose.sensor.extrinsics.pos.z
+                    "x": position[0],
+                    "y": position[1],
+                    "z": position[2]
                 },
                 "heading": {
-                    "x": ego_pose.sensor.extrinsics.quat.x,
-                    "y": ego_pose.sensor.extrinsics.quat.y,
-                    "z": ego_pose.sensor.extrinsics.quat.z,
-                    "w": ego_pose.sensor.extrinsics.quat.w
+                    "x": quaternion[0],
+                    "y": quaternion[1],
+                    "z": quaternion[2],
+                    "w": quaternion[3]
                 },
                 "images": dict()
             }
-            pcd_name = os.path.basename(pcd_filepath)
 
             # Loop through images
             for idx, camera_name in enumerate(self.camera_list):
@@ -271,42 +267,42 @@ class LidarCustomParser(LidarFileMappingParser):
                 intrinsic_format = f"P_rect_{camera_name.split('_')[-1]}"
                 camera_intrinsic = cameras_intrinsic[intrinsic_format]
 
-                # TODO
-                position, quaternion = ["", ""]
+                position, quaternion = cc_utils.get_position_and_quaternion_from_matrix(camera_intrinsic)
 
                 # Output image dict
                 ext = os.path.splitext(p=image_filepath)[1]
                 image_dict = {
                     "metadata": {
                         "timestamp": image_timestamp,
+                        "image_name": image_name
                     },
                     "image_path": f"frames/{lidar_frame}/{idx}{ext}",
                     "timestamp": image_timestamp_unix,
                     "intrinsics": {
-                        "fx": sensor_reference.sensor.intrinsics.camera_matrix[0],
-                        "fy": sensor_reference.sensor.intrinsics.camera_matrix[5],
-                        "cx": sensor_reference.sensor.intrinsics.camera_matrix[2],
-                        "cy": sensor_reference.sensor.intrinsics.camera_matrix[6],
+                        "fx": camera_extrinsic[0][0],
+                        "fy": camera_extrinsic[0][2],
+                        "cx": camera_extrinsic[1][1],
+                        "cy": camera_extrinsic[1][2],
                     },
                     "extrinsics": {
                         "translation": {
-                            "x": translation["x"],
-                            "y": translation["y"],
-                            "z": translation["z"]
+                            "x": position[0],
+                            "y": position[1],
+                            "z": position[2]
                         },
                         "rotation": {
-                            "x": rotation["x"],
-                            "y": rotation["y"],
-                            "z": rotation["z"],
-                            "w": rotation["w"]
+                            "x": quaternion[0],
+                            "y": quaternion[1],
+                            "z": quaternion[2],
+                            "w": quaternion[3]
                         },
                     },
                     "distortion": {
-                        "k1": sensor_reference.sensor.intrinsics.distortion[0],
-                        "k2": sensor_reference.sensor.intrinsics.distortion[1],
-                        "k3": sensor_reference.sensor.intrinsics.distortion[2],
-                        "p1": sensor_reference.sensor.intrinsics.distortion[3],
-                        "p2": sensor_reference.sensor.intrinsics.distortion[4]
+                        "k1": 0,
+                        "k2": 0,
+                        "k3": 0,
+                        "p1": 0,
+                        "p2": 0
                     }
                 }
                 output_frame_dict['images'][str(idx)] = image_dict
@@ -347,8 +343,8 @@ def main():
     # cp.data_pre_processing(data_path=data_path)
     # cp.upload_pcds_and_images(data_path=data_path, dataset=dataset)
     mapping_item = cp.create_mapping_json(data_path=data_path, dataset=dataset)
-    # frames_item = cp.parse_data(mapping_item=mapping_item)
     # mapping_item = dataset.items.get(item_id="65f32fa45c63d275df8dc81d")
+    frames_item = cp.parse_data(mapping_item=mapping_item)
 
     # frames_item = dataset.items.get(filepath="/frames.json")
     # cp.upload_pre_annotation_lidar(frames_item=frames_item, data_path=data_path)

@@ -114,10 +114,8 @@ def loadPerspectiveIntrinsic(filename):
 ##############################
 # dtlpylidar_transformations #
 ##############################
-def get_pose_from_matrix(matrix):
-    return matrix[:3, 3]
-
-
-def get_quaternion_from_matrix(matrix):
+def get_position_and_quaternion_from_matrix(matrix):
+    pose = matrix[:3, 3]
     r = R.from_matrix(matrix[:3, :3])
-    return r.as_quat()
+    quaternion = r.as_quat()
+    return pose, quaternion
